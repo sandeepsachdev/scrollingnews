@@ -200,15 +200,62 @@ function prependNew(newArticles) {
     });
 }
 
-// ── Show / hide "N new articles" banner ──────────────────────────────────────
-let bannerTimeout = null;
-function showBanner(count) {
-    newBannerText.textContent = `${count} new article${count > 1 ? 's' : ''} added ↑`;
-    newBanner.classList.remove('hidden');
-    clearTimeout(bannerTimeout);
-    bannerTimeout = setTimeout(() => newBanner.classList.add('hidden'), 5000);
+// ── Flash overlay: new articles animate in from center of viewport ────────────
+const MAX_FLASH      = 4;
+const FLASH_HOLD_MS  = 3400;   // how long cards stay visible
+const FLASH_OUT_MS   = 550;    // duration of fly-out animation
+
+function showFlashCards(newArticles) {
+    document.getElementById('flashBackdrop')?.remove();
+    document.getElementById('flashOverlay')?.remove();
+
+    const backdrop = document.createElement('div');
+    backdrop.id = 'flashBackdrop';
+    backdrop.className = 'flash-backdrop';
+    document.body.appendChild(backdrop);
+    requestAnimationFrame(() => backdrop.classList.add('visible'));
+
+    const overlay = document.createElement('div');
+    overlay.id = 'flashOverlay';
+    overlay.className = 'flash-overlay';
+
+    newArticles.slice(0, MAX_FLASH).forEach((article, i) => {
+        const card = document.createElement('div');
+        card.className = 'flash-card';
+        const inDelay  = i * 80;
+        const outDelay = FLASH_HOLD_MS + i * 40;
+        card.style.animationDelay = `${inDelay}ms, ${outDelay}ms`;
+
+        const badgeClass = sourceBadgeClass(article.source);
+        card.innerHTML = `
+            <div class="card-meta">
+                <span class="source-badge ${badgeClass}">${escHtml(article.source)}</span>
+                <span class="article-time">${formatTime(article.publishedAt)}</span>
+                <span class="new-badge">NEW</span>
+            </div>
+            <div class="card-title">${escHtml(article.title)}</div>
+        `;
+        overlay.appendChild(card);
+    });
+
+    if (newArticles.length > MAX_FLASH) {
+        const more = document.createElement('div');
+        more.className = 'flash-more';
+        more.style.animationDelay = `${MAX_FLASH * 80}ms, ${FLASH_HOLD_MS}ms`;
+        more.textContent = `+ ${newArticles.length - MAX_FLASH} more new articles`;
+        overlay.appendChild(more);
+    }
+
+    document.body.appendChild(overlay);
+
+    // Fade backdrop out, then remove everything
+    setTimeout(() => {
+        backdrop.classList.remove('visible');
+        setTimeout(() => { backdrop.remove(); overlay.remove(); }, 350);
+    }, FLASH_HOLD_MS + FLASH_OUT_MS + 100);
 }
 
+// ── Keep banner wired for "N new" banner click → newest ──────────────────────
 newBanner.addEventListener('click', () => {
     newBanner.classList.add('hidden');
     restartFromNewest();
@@ -228,8 +275,8 @@ async function fetchNews() {
         } else {
             const newArticles = articles.filter(a => !knownIds.has(a.id));
             if (newArticles.length > 0) {
+                showFlashCards(newArticles);
                 prependNew(newArticles);
-                showBanner(newArticles.length);
                 articleCount.textContent = `${articles.length + newArticles.length} articles`;
             }
         }

@@ -115,6 +115,45 @@ body {
     font-size: 12px;
 }
 
+.restart-btn {
+    padding: 7px 12px;
+    font-size: 13px;
+    color: var(--green);
+    border-color: #238636;
+}
+.restart-btn:hover { background: #0d2b0d; border-color: var(--green); }
+
+/* Floating restart FAB */
+.restart-fab {
+    position: fixed;
+    bottom: calc(var(--footer-h) + 20px);
+    right: 24px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #000;
+    font-size: 22px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    z-index: 99;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(240,165,0,0.45);
+    transition: transform 0.2s, opacity 0.3s, box-shadow 0.2s;
+}
+.restart-fab:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(240,165,0,0.6);
+}
+.restart-fab.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(10px);
+}
+
 /* ============================================================
    NEW-ARTICLE BANNER
    ============================================================ */

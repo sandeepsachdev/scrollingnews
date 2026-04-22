@@ -11,13 +11,15 @@ let rafId         = null;
 let refreshCountdown = REFRESH_MS / 1000;
 let countdownInterval = null;
 
-const articlesList = document.getElementById('articlesList');
-const pauseBtn     = document.getElementById('pauseBtn');
-const slowBtn      = document.getElementById('slowBtn');
-const fastBtn      = document.getElementById('fastBtn');
-const refreshTimer = document.getElementById('refreshTimer');
-const articleCount = document.getElementById('articleCount');
-const newBanner    = document.getElementById('newBanner');
+const articlesList  = document.getElementById('articlesList');
+const pauseBtn      = document.getElementById('pauseBtn');
+const slowBtn       = document.getElementById('slowBtn');
+const fastBtn       = document.getElementById('fastBtn');
+const restartBtn    = document.getElementById('restartBtn');
+const restartFab    = document.getElementById('restartFab');
+const refreshTimer  = document.getElementById('refreshTimer');
+const articleCount  = document.getElementById('articleCount');
+const newBanner     = document.getElementById('newBanner');
 const newBannerText = document.getElementById('newBannerText');
 
 // ── Auto-scroll (requestAnimationFrame) ─────────────────────────────────────
@@ -61,6 +63,31 @@ slowBtn.addEventListener('click', () => {
 fastBtn.addEventListener('click', () => {
     if (speedIndex < SPEEDS.length - 1) speedIndex++;
 });
+
+// ── Restart from newest ──────────────────────────────────────────────────────
+function restartFromNewest() {
+    // Resume scrolling if paused
+    if (!isScrolling) {
+        isScrolling = true;
+        pauseBtn.querySelector('.btn-icon').innerHTML = '&#9646;&#9646;';
+        pauseBtn.querySelector('.btn-label').textContent = 'Pause';
+        pauseBtn.classList.remove('active');
+    }
+    lastTimestamp = null;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+restartBtn.addEventListener('click', restartFromNewest);
+restartFab.addEventListener('click', restartFromNewest);
+
+// Show FAB once user has scrolled past ~300px
+window.addEventListener('scroll', () => {
+    if (window.scrollY > 300) {
+        restartFab.classList.remove('hidden');
+    } else {
+        restartFab.classList.add('hidden');
+    }
+}, { passive: true });
 
 // ── Countdown timer ──────────────────────────────────────────────────────────
 function startCountdown() {
@@ -183,8 +210,8 @@ function showBanner(count) {
 }
 
 newBanner.addEventListener('click', () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
     newBanner.classList.add('hidden');
+    restartFromNewest();
 });
 
 // ── Fetch & update ──────────────────────────────────────────────────────────

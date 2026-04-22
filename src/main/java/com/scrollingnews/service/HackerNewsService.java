@@ -14,8 +14,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -75,9 +73,7 @@ public class HackerNewsService {
             score, comments, item.path("by").asText("anonymous"));
 
         long unixTime = item.path("time").asLong(0);
-        LocalDateTime publishedAt = unixTime > 0
-            ? Instant.ofEpochSecond(unixTime).atZone(ZoneId.systemDefault()).toLocalDateTime()
-            : LocalDateTime.now();
+        Instant publishedAt = unixTime > 0 ? Instant.ofEpochSecond(unixTime) : Instant.now();
 
         String articleId = RssFeedService.sha1(url);
         return new NewsArticle(articleId, title, description, url, "Hacker News", publishedAt);

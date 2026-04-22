@@ -13,8 +13,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -90,17 +89,16 @@ public class RssFeedService {
         }
         description = truncate(description, 280);
 
-        LocalDateTime publishedAt = toLocalDateTime(entry.getPublishedDate());
-        if (publishedAt == null) publishedAt = toLocalDateTime(entry.getUpdatedDate());
-        if (publishedAt == null) publishedAt = LocalDateTime.now();
+        Instant publishedAt = toInstant(entry.getPublishedDate());
+        if (publishedAt == null) publishedAt = toInstant(entry.getUpdatedDate());
+        if (publishedAt == null) publishedAt = Instant.now();
 
         String id = sha1(url);
         return new NewsArticle(id, title.trim(), description, url.trim(), source, publishedAt);
     }
 
-    private LocalDateTime toLocalDateTime(Date date) {
-        if (date == null) return null;
-        return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+    private Instant toInstant(Date date) {
+        return date == null ? null : date.toInstant();
     }
 
     private String stripHtml(String html) {

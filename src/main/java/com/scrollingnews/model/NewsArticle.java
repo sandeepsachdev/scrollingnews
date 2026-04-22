@@ -1,7 +1,6 @@
 package com.scrollingnews.model;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Objects;
 
 public class NewsArticle {
@@ -10,12 +9,10 @@ public class NewsArticle {
     private String description;
     private String url;
     private String source;
-
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    private LocalDateTime publishedAt;
+    private Instant publishedAt;
 
     public NewsArticle(String id, String title, String description,
-                       String url, String source, LocalDateTime publishedAt) {
+                       String url, String source, Instant publishedAt) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -29,7 +26,7 @@ public class NewsArticle {
     public String getDescription() { return description; }
     public String getUrl() { return url; }
     public String getSource() { return source; }
-    public LocalDateTime getPublishedAt() { return publishedAt; }
+    public Instant getPublishedAt() { return publishedAt; }
 
     @Override
     public boolean equals(Object o) {

@@ -22,17 +22,24 @@ const articleCount  = document.getElementById('articleCount');
 const newBanner     = document.getElementById('newBanner');
 const newBannerText = document.getElementById('newBannerText');
 
+let scrollAccum = 0;   // fractional pixel accumulator
+
 // ── Auto-scroll (requestAnimationFrame) ─────────────────────────────────────
 function scrollStep(timestamp) {
     if (isScrolling) {
         if (lastTimestamp !== null) {
             const elapsed = timestamp - lastTimestamp;
-            const pixels  = (SPEEDS[speedIndex] * elapsed) / 1000;
-            window.scrollBy({ top: pixels, behavior: 'instant' });
+            scrollAccum  += (SPEEDS[speedIndex] * elapsed) / 1000;
+            const whole   = Math.floor(scrollAccum);
+            if (whole > 0) {
+                window.scrollBy(0, whole);
+                scrollAccum -= whole;
+            }
         }
         lastTimestamp = timestamp;
     } else {
         lastTimestamp = null;
+        scrollAccum   = 0;
     }
     rafId = requestAnimationFrame(scrollStep);
 }

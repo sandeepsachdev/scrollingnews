@@ -1,7 +1,7 @@
 'use strict';
 
 // ── State ────────────────────────────────────────────────────────────────────
-const REFRESH_MS  = 120_000;   // 2 minutes
+const REFRESH_MS  = 20_000;   // 2 minutes
 const SPEEDS      = [15, 30, 50, 80];  // px/s options
 let speedIndex    = 1;          // default: 30 px/s
 let isScrolling   = true;

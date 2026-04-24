@@ -57,6 +57,7 @@ public class NewsAggregatorService {
     private final AtomicInteger firstRoundProgress = new AtomicInteger(0);
     private volatile boolean initialized = false;
     private volatile long nextPollAt = 0;
+    private final AtomicInteger pollCycle = new AtomicInteger(0);
 
     public NewsAggregatorService(NewsFetcherService fetcher) {
         this.fetcher = fetcher;
@@ -102,11 +103,13 @@ public class NewsAggregatorService {
                 pendingArticles.addAll(newArticles);
             }
         }
+        pollCycle.incrementAndGet();
     }
 
     public synchronized StatusResponse getStatus() {
+        int cycle = pollCycle.get();
         if (!initialized) {
-            return new StatusResponse("INITIALIZING", firstRoundProgress.get(), SOURCES.size(), Collections.emptyList(), nextPollAt);
+            return new StatusResponse("INITIALIZING", firstRoundProgress.get(), SOURCES.size(), Collections.emptyList(), nextPollAt, cycle);
         }
 
         // Promote pending to activeDisplay when nothing is currently being shown
@@ -116,10 +119,10 @@ public class NewsAggregatorService {
         }
 
         if (activeDisplay != null) {
-            return new StatusResponse("ARTICLES_READY", SOURCES.size(), SOURCES.size(), activeDisplay, nextPollAt);
+            return new StatusResponse("ARTICLES_READY", SOURCES.size(), SOURCES.size(), activeDisplay, nextPollAt, cycle);
         }
 
-        return new StatusResponse("IDLE", SOURCES.size(), SOURCES.size(), Collections.emptyList(), nextPollAt);
+        return new StatusResponse("IDLE", SOURCES.size(), SOURCES.size(), Collections.emptyList(), nextPollAt, cycle);
     }
 
     public synchronized void markDisplayComplete() {

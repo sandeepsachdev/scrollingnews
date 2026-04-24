@@ -7,5 +7,6 @@ public record StatusResponse(
         int sourcesRead,
         int totalSources,
         List<NewsArticle> articles,
-        long nextPollAt
+        long nextPollAt,
+        int pollCycle
 ) {}

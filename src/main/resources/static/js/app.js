@@ -9,6 +9,7 @@ let pollTimerId = null;
 let countdownTimerId = null;
 let scrolling = false;
 let nextPollAt = 0;
+let initialPollCycle = null;   // cycle count when the page first connected
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -129,18 +130,25 @@ async function poll() {
 
         nextPollAt = data.nextPollAt || 0;
 
+        // Snapshot the cycle count the very first time we hear from the server.
+        // Articles are only shown once a new cycle completes after page load.
+        if (initialPollCycle === null) {
+            initialPollCycle = data.pollCycle;
+        }
+        const newCycleSinceLoad = data.pollCycle > initialPollCycle;
+
         if (data.state === 'INITIALIZING') {
             stopCountdown();
             statusEl.textContent = 'Reading sources  ' + data.sourcesRead + ' / ' + data.totalSources;
             schedulePoll(POLL_MS);
 
-        } else if (data.state === 'ARTICLES_READY' && data.articles && data.articles.length > 0) {
+        } else if (newCycleSinceLoad && data.state === 'ARTICLES_READY' && data.articles && data.articles.length > 0) {
             stopCountdown();
             startScrolling(data.articles);
             // scrolling takes over; onScrollDone will reschedule polling
 
         } else {
-            // IDLE — show waiting message with live countdown
+            // IDLE, or ARTICLES_READY but we haven't passed a full cycle yet
             startCountdown();
             schedulePoll(POLL_MS);
         }

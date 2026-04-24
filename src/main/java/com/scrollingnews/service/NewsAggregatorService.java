@@ -56,6 +56,7 @@ public class NewsAggregatorService {
 
     private final AtomicInteger firstRoundProgress = new AtomicInteger(0);
     private volatile boolean initialized = false;
+    private volatile long nextPollAt = 0;
 
     public NewsAggregatorService(NewsFetcherService fetcher) {
         this.fetcher = fetcher;
@@ -65,6 +66,7 @@ public class NewsAggregatorService {
     public void pollAll() {
         boolean isFirstRound = !initialized;
         log.info("Poll cycle starting (firstRound={})", isFirstRound);
+        nextPollAt = System.currentTimeMillis() + 60000;
 
         List<CompletableFuture<List<NewsArticle>>> futures = SOURCES.stream()
                 .map(source -> CompletableFuture.supplyAsync(() -> {
@@ -104,7 +106,7 @@ public class NewsAggregatorService {
 
     public synchronized StatusResponse getStatus() {
         if (!initialized) {
-            return new StatusResponse("INITIALIZING", firstRoundProgress.get(), SOURCES.size(), Collections.emptyList());
+            return new StatusResponse("INITIALIZING", firstRoundProgress.get(), SOURCES.size(), Collections.emptyList(), nextPollAt);
         }
 
         // Promote pending to activeDisplay when nothing is currently being shown
@@ -114,10 +116,10 @@ public class NewsAggregatorService {
         }
 
         if (activeDisplay != null) {
-            return new StatusResponse("ARTICLES_READY", SOURCES.size(), SOURCES.size(), activeDisplay);
+            return new StatusResponse("ARTICLES_READY", SOURCES.size(), SOURCES.size(), activeDisplay, nextPollAt);
         }
 
-        return new StatusResponse("IDLE", SOURCES.size(), SOURCES.size(), Collections.emptyList());
+        return new StatusResponse("IDLE", SOURCES.size(), SOURCES.size(), Collections.emptyList(), nextPollAt);
     }
 
     public synchronized void markDisplayComplete() {

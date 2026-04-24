@@ -6,5 +6,6 @@ public record StatusResponse(
         String state,
         int sourcesRead,
         int totalSources,
-        List<NewsArticle> articles
+        List<NewsArticle> articles,
+        long nextPollAt
 ) {}

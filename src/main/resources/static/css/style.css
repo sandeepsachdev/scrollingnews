@@ -25,7 +25,11 @@ html, body {
     text-transform: uppercase;
     white-space: nowrap;
     z-index: 10;
-    transition: color 1s ease;
+    transition: color 0.8s ease;
+}
+
+#status-text.waiting {
+    color: #404040;
 }
 
 #viewport {

@@ -6,7 +6,9 @@ const scrollContainer = document.getElementById('scroll-container');
 
 let animFrameId = null;
 let pollTimerId = null;
+let countdownTimerId = null;
 let scrolling = false;
+let nextPollAt = 0;
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -45,6 +47,26 @@ function escHtml(str) {
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
+}
+
+// ── countdown ────────────────────────────────────────────────────────────────
+
+function startCountdown() {
+    statusEl.classList.add('waiting');
+    clearInterval(countdownTimerId);
+    countdownTimerId = setInterval(updateCountdown, 1000);
+    updateCountdown();
+}
+
+function stopCountdown() {
+    statusEl.classList.remove('waiting');
+    clearInterval(countdownTimerId);
+    countdownTimerId = null;
+}
+
+function updateCountdown() {
+    const secs = Math.max(0, Math.ceil((nextPollAt - Date.now()) / 1000));
+    statusEl.textContent = 'Waiting for news  ·  next refresh in ' + secs + 's';
 }
 
 // ── scroll animation ──────────────────────────────────────────────────────────
@@ -87,7 +109,6 @@ function onScrollDone() {
     scrolling = false;
     scrollContainer.innerHTML = '';
     scrollContainer.style.transform = '';
-    statusEl.textContent = '';
 
     fetch('/api/complete', { method: 'POST' }).catch(() => {});
 
@@ -101,17 +122,21 @@ async function poll() {
         const res = await fetch('/api/status');
         const data = await res.json();
 
+        nextPollAt = data.nextPollAt || 0;
+
         if (data.state === 'INITIALIZING') {
+            stopCountdown();
             statusEl.textContent = 'Reading sources  ' + data.sourcesRead + ' / ' + data.totalSources;
             schedulePoll(POLL_MS);
 
         } else if (data.state === 'ARTICLES_READY' && data.articles && data.articles.length > 0) {
+            stopCountdown();
             startScrolling(data.articles);
             // scrolling takes over; onScrollDone will reschedule polling
 
         } else {
-            // IDLE — nothing new yet
-            statusEl.textContent = '';
+            // IDLE — show waiting message with live countdown
+            startCountdown();
             schedulePoll(POLL_MS);
         }
     } catch (_) {

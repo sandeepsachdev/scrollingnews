@@ -3,6 +3,7 @@ const POLL_MS = 2000;       // how often to check the backend when not scrolling
 
 const statusEl  = document.getElementById('status-text');
 const showBtn   = document.getElementById('show-btn');
+const replayBtn = document.getElementById('replay-btn');
 const scrollContainer = document.getElementById('scroll-container');
 
 let animFrameId = null;
@@ -15,6 +16,9 @@ let seenFirstCycle = false;
 
 // Articles received from the server but not yet shown to the user
 const clientQueue = [];
+
+// The last batch that was scrolled — kept so the user can replay it
+let lastDisplayedArticles = [];
 
 // Last-known counts for the top bar
 let lastTotalLoaded = 0;
@@ -99,8 +103,28 @@ showBtn.addEventListener('click', function () {
     if (clientQueue.length === 0 || scrolling) return;
     const articles = clientQueue.splice(0);   // drain queue
     showBtn.style.display = 'none';
+    replayBtn.style.display = 'none';
     stopCountdown();
     startScrolling(articles);
+});
+
+// ── replay button ─────────────────────────────────────────────────────────────
+
+function updateReplayBtn() {
+    if (lastDisplayedArticles.length > 0 && !scrolling) {
+        replayBtn.textContent = '↺  Replay last ' + fmt(lastDisplayedArticles.length) + ' articles';
+        replayBtn.style.display = 'block';
+    } else {
+        replayBtn.style.display = 'none';
+    }
+}
+
+replayBtn.addEventListener('click', function () {
+    if (lastDisplayedArticles.length === 0 || scrolling) return;
+    showBtn.style.display = 'none';
+    replayBtn.style.display = 'none';
+    stopCountdown();
+    startScrolling(lastDisplayedArticles.slice());
 });
 
 // ── article items ─────────────────────────────────────────────────────────────
@@ -127,8 +151,10 @@ function buildItem(article) {
 // ── scroll animation ──────────────────────────────────────────────────────────
 
 function startScrolling(articles) {
+    lastDisplayedArticles = articles;
     scrolling = true;
     scrollContainer.innerHTML = '';
+    replayBtn.style.display = 'none';
     updateTopBar();
 
     articles.forEach(a => scrollContainer.appendChild(buildItem(a)));
@@ -164,8 +190,9 @@ function onScrollDone() {
     scrollContainer.innerHTML = '';
     scrollContainer.style.transform = '';
 
-    // Show button if more arrived while we were scrolling
+    // Show button if more arrived while we were scrolling, and replay option
     updateShowBtn();
+    updateReplayBtn();
     updateTopBar();
     startCountdown();
     schedulePoll(POLL_MS);

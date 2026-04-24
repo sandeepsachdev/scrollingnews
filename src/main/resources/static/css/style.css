@@ -52,6 +52,30 @@ html, body {
     background: #0d0d0d;
 }
 
+#replay-btn {
+    position: fixed;
+    bottom: 26px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    background: transparent;
+    border: 1px solid #1c1c1c;
+    color: #555;
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    padding: 10px 22px;
+    cursor: pointer;
+    z-index: 20;
+    transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+#replay-btn:hover {
+    border-color: #555;
+    color: #bbb;
+}
+
 #viewport {
     position: fixed;
     inset: 0;

@@ -1,54 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Scrolling News</title>
-    <link rel="stylesheet" href="/css/style.css"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News</title>
+    <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-    <header class="site-header">
-        <div class="header-left">
-            <div class="logo">
-                <span class="logo-dot"></span>
-                LIVE NEWS
-            </div>
-            <div class="article-count" id="articleCount">Loading...</div>
-        </div>
-        <div class="header-right">
-            <div class="refresh-info">
-                <span class="refresh-label">Next refresh</span>
-                <span class="refresh-timer" id="refreshTimer">2:00</span>
-            </div>
-            <button class="control-btn" id="pauseBtn" title="Pause/Resume auto-scroll">
-                <span class="btn-icon">&#9646;&#9646;</span>
-                <span class="btn-label">Pause</span>
-            </button>
-            <button class="control-btn speed-btn" id="slowBtn" title="Slower">&#9660; Slow</button>
-            <button class="control-btn speed-btn" id="fastBtn" title="Faster">&#9650; Fast</button>
-            <button class="control-btn restart-btn" id="restartBtn" title="Scroll back to newest article">&#8679; Newest</button>
-        </div>
-    </header>
-
-    <div id="newBanner" class="new-banner hidden">
-        <span id="newBannerText"></span>
+    <div id="status-text"></div>
+    <div id="viewport">
+        <div id="scroll-container"></div>
     </div>
-
-    <main id="newsContainer" class="news-container">
-        <div id="articlesList" class="articles-list">
-            <div class="loading-state">
-                <div class="spinner"></div>
-                <p>Fetching latest news from around the world...</p>
-            </div>
-        </div>
-    </main>
-
-    <footer class="site-footer">
-        <span>Sources: BBC, NPR, Guardian, Al Jazeera, Sky News, ABC, CBS, CNBC, Reuters, DW, Yahoo, Reddit &amp; Hacker News</span>
-    </footer>
-
-    <button class="restart-fab hidden" id="restartFab" title="Back to newest article">&#8679;</button>
-
     <script src="/js/app.js"></script>
 </body>
 </html>

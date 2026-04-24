@@ -1,22 +1,19 @@
 package com.scrollingnews.controller;
 
-import com.scrollingnews.model.NewsArticle;
+import com.scrollingnews.model.StatusResponse;
 import com.scrollingnews.service.NewsAggregatorService;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
-
-import java.util.List;
-import java.util.Map;
 
 @Controller
 public class NewsController {
 
-    private final NewsAggregatorService aggregatorService;
+    private final NewsAggregatorService aggregator;
 
-    public NewsController(NewsAggregatorService aggregatorService) {
-        this.aggregatorService = aggregatorService;
+    public NewsController(NewsAggregatorService aggregator) {
+        this.aggregator = aggregator;
     }
 
     @GetMapping("/")
@@ -24,14 +21,15 @@ public class NewsController {
         return "index";
     }
 
-    @GetMapping("/api/news")
+    @GetMapping("/api/status")
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> getNews() {
-        List<NewsArticle> articles = aggregatorService.getArticles();
-        return ResponseEntity.ok(Map.of(
-            "articles", articles,
-            "lastRefreshed", aggregatorService.getLastRefreshed(),
-            "count", articles.size()
-        ));
+    public StatusResponse getStatus() {
+        return aggregator.getStatus();
+    }
+
+    @PostMapping("/api/complete")
+    @ResponseBody
+    public void markComplete() {
+        aggregator.markDisplayComplete();
     }
 }

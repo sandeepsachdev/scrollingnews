@@ -29,7 +29,7 @@ html, body {
 
 #pause-btn {
     position: fixed;
-    top: 18px;
+    bottom: 26px;
     right: 28px;
     background: transparent;
     border: 1px solid #555;

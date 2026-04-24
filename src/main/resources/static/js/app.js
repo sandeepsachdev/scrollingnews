@@ -2,6 +2,7 @@ const SCROLL_SPEED = 80;    // pixels per second — slow enough to read headlin
 const POLL_MS = 2000;       // how often to check the backend when not scrolling
 
 const statusEl  = document.getElementById('status-text');
+const pauseBtn  = document.getElementById('pause-btn');
 const showBtn   = document.getElementById('show-btn');
 const replayBtn = document.getElementById('replay-btn');
 const scrollContainer = document.getElementById('scroll-container');
@@ -10,6 +11,7 @@ let animFrameId = null;
 let pollTimerId = null;
 let countdownTimerId = null;
 let scrolling = false;
+let paused = false;
 let nextPollAt = 0;
 let initialPollCycle = null;
 let seenFirstCycle = false;
@@ -88,10 +90,37 @@ function stopCountdown() {
     countdownTimerId = null;
 }
 
-// ── show button ───────────────────────────────────────────────────────────────
+// ── pause toggle ──────────────────────────────────────────────────────────────
+
+function updatePauseBtn() {
+    if (paused) {
+        pauseBtn.textContent = 'Resume';
+        pauseBtn.classList.add('paused');
+    } else {
+        pauseBtn.textContent = 'Pause';
+        pauseBtn.classList.remove('paused');
+    }
+}
+
+pauseBtn.addEventListener('click', function () {
+    paused = !paused;
+    updatePauseBtn();
+
+    if (!paused && !scrolling && clientQueue.length > 0) {
+        // Resuming with queued articles — start scrolling immediately
+        showBtn.style.display = 'none';
+        stopCountdown();
+        startScrolling(clientQueue.splice(0));
+    } else if (paused) {
+        // Just paused — show the queued count if anything is waiting
+        updateShowBtn();
+    }
+});
+
+// ── show button (paused mode only) ────────────────────────────────────────────
 
 function updateShowBtn() {
-    if (clientQueue.length > 0 && !scrolling) {
+    if (paused && clientQueue.length > 0 && !scrolling) {
         showBtn.textContent = 'Show ' + fmt(clientQueue.length) + ' articles';
         showBtn.style.display = 'block';
     } else {
@@ -101,7 +130,7 @@ function updateShowBtn() {
 
 showBtn.addEventListener('click', function () {
     if (clientQueue.length === 0 || scrolling) return;
-    const articles = clientQueue.splice(0);   // drain queue
+    const articles = clientQueue.splice(0);
     showBtn.style.display = 'none';
     replayBtn.style.display = 'none';
     stopCountdown();
@@ -155,6 +184,7 @@ function startScrolling(articles) {
     scrolling = true;
     scrollContainer.innerHTML = '';
     replayBtn.style.display = 'none';
+    showBtn.style.display = 'none';
     updateTopBar();
 
     articles.forEach(a => scrollContainer.appendChild(buildItem(a)));
@@ -190,12 +220,16 @@ function onScrollDone() {
     scrollContainer.innerHTML = '';
     scrollContainer.style.transform = '';
 
-    // Show button if more arrived while we were scrolling, and replay option
-    updateShowBtn();
-    updateReplayBtn();
-    updateTopBar();
-    startCountdown();
-    schedulePoll(POLL_MS);
+    if (!paused && clientQueue.length > 0) {
+        // Auto-play mode: immediately scroll the next queued batch
+        startScrolling(clientQueue.splice(0));
+    } else {
+        updateShowBtn();
+        updateReplayBtn();
+        updateTopBar();
+        startCountdown();
+        schedulePoll(POLL_MS);
+    }
 }
 
 // ── polling ───────────────────────────────────────────────────────────────────
@@ -229,13 +263,20 @@ async function poll() {
 
         } else if (seenFirstCycle && data.state === 'ARTICLES_READY' &&
                    data.articles && data.articles.length > 0) {
-            // Queue the articles client-side and immediately free the backend
             data.articles.forEach(a => clientQueue.push(a));
             fetch('/api/complete', { method: 'POST' }).catch(() => {});
-            updateTopBar();
-            updateShowBtn();
-            startCountdown();
-            schedulePoll(POLL_MS);
+
+            if (!paused && !scrolling) {
+                // Auto-play: start scrolling right away
+                stopCountdown();
+                startScrolling(clientQueue.splice(0));
+            } else {
+                // Paused (or mid-scroll): queue and let the user / current scroll decide
+                updateTopBar();
+                updateShowBtn();
+                startCountdown();
+                schedulePoll(POLL_MS);
+            }
 
         } else {
             updateTopBar();

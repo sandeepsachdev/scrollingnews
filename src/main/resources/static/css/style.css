@@ -15,21 +15,16 @@ html, body {
 
 #status-text {
     position: fixed;
-    bottom: 28px;
+    top: 22px;
     left: 50%;
     transform: translateX(-50%);
-    color: #222;
+    color: #383838;
     font-size: 11px;
     font-family: 'Courier New', monospace;
-    letter-spacing: 3px;
+    letter-spacing: 2.5px;
     text-transform: uppercase;
     white-space: nowrap;
     z-index: 10;
-    transition: color 0.8s ease;
-}
-
-#status-text.waiting {
-    color: #404040;
 }
 
 #viewport {

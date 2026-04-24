@@ -9,9 +9,17 @@ let pollTimerId = null;
 let countdownTimerId = null;
 let scrolling = false;
 let nextPollAt = 0;
-let initialPollCycle = null;   // cycle count when the page first connected
+let initialPollCycle = null;
+let seenFirstCycle = false;
 
-// ── helpers ──────────────────────────────────────────────────────────────────
+// Last-known values for the top bar (kept so the countdown can re-render alone)
+let lastTotalLoaded = 0;
+let lastUnseenCount = 0;
+let lastState = 'INITIALIZING';
+let lastSourcesRead = 0;
+let lastTotalSources = 0;
+
+// ── helpers ───────────────────────────────────────────────────────────────────
 
 function relativeTime(ts) {
     const diff = Date.now() - ts;
@@ -27,6 +35,54 @@ function stripHtml(html) {
     div.innerHTML = html;
     return (div.textContent || div.innerText || '').trim();
 }
+
+function fmt(n) {
+    return n.toLocaleString();
+}
+
+function escHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+// ── top bar ───────────────────────────────────────────────────────────────────
+
+function updateTopBar() {
+    const parts = [];
+
+    if (lastState === 'INITIALIZING') {
+        parts.push('Reading sources  ' + lastSourcesRead + ' / ' + lastTotalSources);
+        if (lastTotalLoaded > 0) {
+            parts.push(fmt(lastTotalLoaded) + ' loaded');
+        }
+    } else {
+        parts.push(fmt(lastTotalLoaded) + ' loaded');
+        if (seenFirstCycle && lastUnseenCount > 0) {
+            parts.push(fmt(lastUnseenCount) + ' unseen');
+        }
+        if (nextPollAt > 0) {
+            const secs = Math.max(0, Math.ceil((nextPollAt - Date.now()) / 1000));
+            parts.push('next refresh in ' + secs + 's');
+        }
+    }
+
+    statusEl.textContent = parts.join('  ·  ');
+}
+
+function startCountdown() {
+    clearInterval(countdownTimerId);
+    countdownTimerId = setInterval(updateTopBar, 1000);
+}
+
+function stopCountdown() {
+    clearInterval(countdownTimerId);
+    countdownTimerId = null;
+}
+
+// ── article items ─────────────────────────────────────────────────────────────
 
 function buildItem(article) {
     const el = document.createElement('a');
@@ -47,39 +103,11 @@ function buildItem(article) {
     return el;
 }
 
-function escHtml(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-}
-
-// ── countdown ────────────────────────────────────────────────────────────────
-
-function startCountdown() {
-    statusEl.classList.add('waiting');
-    clearInterval(countdownTimerId);
-    countdownTimerId = setInterval(updateCountdown, 1000);
-    updateCountdown();
-}
-
-function stopCountdown() {
-    statusEl.classList.remove('waiting');
-    clearInterval(countdownTimerId);
-    countdownTimerId = null;
-}
-
-function updateCountdown() {
-    const secs = Math.max(0, Math.ceil((nextPollAt - Date.now()) / 1000));
-    statusEl.textContent = 'Waiting for news  ·  next refresh in ' + secs + 's';
-}
-
 // ── scroll animation ──────────────────────────────────────────────────────────
 
 function startScrolling(articles) {
     scrolling = true;
-    statusEl.textContent = '';
+    stopCountdown();
     scrollContainer.innerHTML = '';
 
     articles.forEach(a => scrollContainer.appendChild(buildItem(a)));
@@ -118,6 +146,7 @@ function onScrollDone() {
 
     fetch('/api/complete', { method: 'POST' }).catch(() => {});
 
+    startCountdown();
     schedulePoll(POLL_MS);
 }
 
@@ -128,27 +157,33 @@ async function poll() {
         const res = await fetch('/api/status');
         const data = await res.json();
 
-        nextPollAt = data.nextPollAt || 0;
+        nextPollAt      = data.nextPollAt   || 0;
+        lastTotalLoaded = data.totalLoaded  || 0;
+        lastUnseenCount = data.unseenCount  || 0;
+        lastState       = data.state;
+        lastSourcesRead = data.sourcesRead  || 0;
+        lastTotalSources = data.totalSources || 0;
 
-        // Snapshot the cycle count the very first time we hear from the server.
-        // Articles are only shown once a new cycle completes after page load.
         if (initialPollCycle === null) {
             initialPollCycle = data.pollCycle;
         }
-        const newCycleSinceLoad = data.pollCycle > initialPollCycle;
+        if (data.pollCycle > initialPollCycle) {
+            seenFirstCycle = true;
+        }
+
+        updateTopBar();
 
         if (data.state === 'INITIALIZING') {
             stopCountdown();
-            statusEl.textContent = 'Reading sources  ' + data.sourcesRead + ' / ' + data.totalSources;
             schedulePoll(POLL_MS);
 
-        } else if (newCycleSinceLoad && data.state === 'ARTICLES_READY' && data.articles && data.articles.length > 0) {
+        } else if (seenFirstCycle && data.state === 'ARTICLES_READY' &&
+                   data.articles && data.articles.length > 0) {
             stopCountdown();
             startScrolling(data.articles);
             // scrolling takes over; onScrollDone will reschedule polling
 
         } else {
-            // IDLE, or ARTICLES_READY but we haven't passed a full cycle yet
             startCountdown();
             schedulePoll(POLL_MS);
         }

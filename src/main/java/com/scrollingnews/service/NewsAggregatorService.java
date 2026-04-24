@@ -108,21 +108,28 @@ public class NewsAggregatorService {
 
     public synchronized StatusResponse getStatus() {
         int cycle = pollCycle.get();
+        int totalLoaded = seenIds.size();
+        int unseenCount = pendingArticles.size();
+
         if (!initialized) {
-            return new StatusResponse("INITIALIZING", firstRoundProgress.get(), SOURCES.size(), Collections.emptyList(), nextPollAt, cycle);
+            return new StatusResponse("INITIALIZING", firstRoundProgress.get(), SOURCES.size(),
+                    Collections.emptyList(), nextPollAt, cycle, totalLoaded, unseenCount);
         }
 
         // Promote pending to activeDisplay when nothing is currently being shown
         if (activeDisplay == null && !pendingArticles.isEmpty()) {
             activeDisplay = new ArrayList<>(pendingArticles);
             pendingArticles.clear();
+            unseenCount = 0;
         }
 
         if (activeDisplay != null) {
-            return new StatusResponse("ARTICLES_READY", SOURCES.size(), SOURCES.size(), activeDisplay, nextPollAt, cycle);
+            return new StatusResponse("ARTICLES_READY", SOURCES.size(), SOURCES.size(),
+                    activeDisplay, nextPollAt, cycle, totalLoaded, unseenCount);
         }
 
-        return new StatusResponse("IDLE", SOURCES.size(), SOURCES.size(), Collections.emptyList(), nextPollAt, cycle);
+        return new StatusResponse("IDLE", SOURCES.size(), SOURCES.size(),
+                Collections.emptyList(), nextPollAt, cycle, totalLoaded, unseenCount);
     }
 
     public synchronized void markDisplayComplete() {

@@ -28,8 +28,13 @@ function stripHtml(html) {
 }
 
 function buildItem(article) {
-    const el = document.createElement('div');
+    const el = document.createElement('a');
     el.className = 'news-item';
+    if (article.link && /^https?:\/\//i.test(article.link)) {
+        el.href = article.link;
+        el.target = '_blank';
+        el.rel = 'noopener noreferrer';
+    }
     const desc = stripHtml(article.description);
     el.innerHTML =
         '<div class="news-meta">' +

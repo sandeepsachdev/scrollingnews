@@ -34,8 +34,8 @@ html, body {
     transform: translate(-50%, -50%);
     display: none;
     background: transparent;
-    border: 1px solid #2a2a2a;
-    color: #888;
+    border: 1px solid #666;
+    color: #ddd;
     font-family: 'Courier New', monospace;
     font-size: 12px;
     letter-spacing: 3px;
@@ -47,9 +47,9 @@ html, body {
 }
 
 #show-btn:hover {
-    border-color: #666;
-    color: #eee;
-    background: #0d0d0d;
+    border-color: #aaa;
+    color: #fff;
+    background: #111;
 }
 
 #replay-btn {
@@ -59,8 +59,8 @@ html, body {
     transform: translateX(-50%);
     display: none;
     background: transparent;
-    border: 1px solid #1c1c1c;
-    color: #555;
+    border: 1px solid #555;
+    color: #aaa;
     font-family: 'Courier New', monospace;
     font-size: 10px;
     letter-spacing: 2.5px;
@@ -72,8 +72,8 @@ html, body {
 }
 
 #replay-btn:hover {
-    border-color: #555;
-    color: #bbb;
+    border-color: #999;
+    color: #eee;
 }
 
 #viewport {

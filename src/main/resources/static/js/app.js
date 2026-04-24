@@ -166,6 +166,10 @@ async function poll() {
 
         if (initialPollCycle === null) {
             initialPollCycle = data.pollCycle;
+            // Discard any articles already queued before this page load
+            if (data.state === 'ARTICLES_READY') {
+                fetch('/api/complete', { method: 'POST' }).catch(() => {});
+            }
         }
         if (data.pollCycle > initialPollCycle) {
             seenFirstCycle = true;

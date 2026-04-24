@@ -18,13 +18,38 @@ html, body {
     top: 22px;
     left: 50%;
     transform: translateX(-50%);
-    color: #777;
+    color: #bbb;
     font-size: 11px;
     font-family: 'Courier New', monospace;
     letter-spacing: 2.5px;
     text-transform: uppercase;
     white-space: nowrap;
     z-index: 10;
+}
+
+#show-btn {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: none;
+    background: transparent;
+    border: 1px solid #2a2a2a;
+    color: #888;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 18px 36px;
+    cursor: pointer;
+    z-index: 20;
+    transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+#show-btn:hover {
+    border-color: #666;
+    color: #eee;
+    background: #0d0d0d;
 }
 
 #viewport {
@@ -95,7 +120,7 @@ html, body {
     font-size: 10px;
     font-family: 'Courier New', monospace;
     letter-spacing: 1px;
-    color: #2a2a2a;
+    color: #555;
 }
 
 .news-title {

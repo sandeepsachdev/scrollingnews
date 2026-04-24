@@ -1,7 +1,8 @@
 const SCROLL_SPEED = 80;    // pixels per second — slow enough to read headlines
 const POLL_MS = 2000;       // how often to check the backend when not scrolling
 
-const statusEl = document.getElementById('status-text');
+const statusEl  = document.getElementById('status-text');
+const showBtn   = document.getElementById('show-btn');
 const scrollContainer = document.getElementById('scroll-container');
 
 let animFrameId = null;
@@ -12,21 +13,26 @@ let nextPollAt = 0;
 let initialPollCycle = null;
 let seenFirstCycle = false;
 
-// Last-known values for the top bar (kept so the countdown can re-render alone)
+// Articles received from the server but not yet shown to the user
+const clientQueue = [];
+
+// Last-known counts for the top bar
 let lastTotalLoaded = 0;
-let lastUnseenCount = 0;
 let lastState = 'INITIALIZING';
 let lastSourcesRead = 0;
 let lastTotalSources = 0;
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
-function relativeTime(ts) {
-    const diff = Date.now() - ts;
-    if (diff < 60_000)       return 'just now';
-    if (diff < 3_600_000)    return Math.floor(diff / 60_000) + 'm ago';
-    if (diff < 86_400_000)   return Math.floor(diff / 3_600_000) + 'h ago';
-    return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+function formatDateTime(ts) {
+    const d = new Date(ts);
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const day   = String(d.getDate()).padStart(2, '0');
+    const month = months[d.getMonth()];
+    const year  = d.getFullYear();
+    const hh    = String(d.getHours()).padStart(2, '0');
+    const mm    = String(d.getMinutes()).padStart(2, '0');
+    return day + ' ' + month + ' ' + year + '  ' + hh + ':' + mm;
 }
 
 function stripHtml(html) {
@@ -36,9 +42,7 @@ function stripHtml(html) {
     return (div.textContent || div.innerText || '').trim();
 }
 
-function fmt(n) {
-    return n.toLocaleString();
-}
+function fmt(n) { return n.toLocaleString(); }
 
 function escHtml(str) {
     return String(str)
@@ -55,13 +59,11 @@ function updateTopBar() {
 
     if (lastState === 'INITIALIZING') {
         parts.push('Reading sources  ' + lastSourcesRead + ' / ' + lastTotalSources);
-        if (lastTotalLoaded > 0) {
-            parts.push(fmt(lastTotalLoaded) + ' loaded');
-        }
+        if (lastTotalLoaded > 0) parts.push(fmt(lastTotalLoaded) + ' loaded');
     } else {
         parts.push(fmt(lastTotalLoaded) + ' loaded');
-        if (seenFirstCycle && lastUnseenCount > 0) {
-            parts.push(fmt(lastUnseenCount) + ' unseen');
+        if (seenFirstCycle && clientQueue.length > 0) {
+            parts.push(fmt(clientQueue.length) + ' unseen');
         }
         if (nextPollAt > 0) {
             const secs = Math.max(0, Math.ceil((nextPollAt - Date.now()) / 1000));
@@ -82,21 +84,40 @@ function stopCountdown() {
     countdownTimerId = null;
 }
 
+// ── show button ───────────────────────────────────────────────────────────────
+
+function updateShowBtn() {
+    if (clientQueue.length > 0 && !scrolling) {
+        showBtn.textContent = 'Show ' + fmt(clientQueue.length) + ' articles';
+        showBtn.style.display = 'block';
+    } else {
+        showBtn.style.display = 'none';
+    }
+}
+
+showBtn.addEventListener('click', function () {
+    if (clientQueue.length === 0 || scrolling) return;
+    const articles = clientQueue.splice(0);   // drain queue
+    showBtn.style.display = 'none';
+    stopCountdown();
+    startScrolling(articles);
+});
+
 // ── article items ─────────────────────────────────────────────────────────────
 
 function buildItem(article) {
     const el = document.createElement('a');
     el.className = 'news-item';
     if (article.link && /^https?:\/\//i.test(article.link)) {
-        el.href = article.link;
+        el.href   = article.link;
         el.target = '_blank';
-        el.rel = 'noopener noreferrer';
+        el.rel    = 'noopener noreferrer';
     }
     const desc = stripHtml(article.description);
     el.innerHTML =
         '<div class="news-meta">' +
             '<span class="news-source">' + escHtml(article.source) + '</span>' +
-            '<span class="news-time">'   + relativeTime(article.publishedAt) + '</span>' +
+            '<span class="news-time">'   + formatDateTime(article.publishedAt) + '</span>' +
         '</div>' +
         '<div class="news-title">' + escHtml(article.title) + '</div>' +
         (desc ? '<div class="news-desc">' + escHtml(desc) + '</div>' : '');
@@ -107,15 +128,14 @@ function buildItem(article) {
 
 function startScrolling(articles) {
     scrolling = true;
-    stopCountdown();
     scrollContainer.innerHTML = '';
+    updateTopBar();
 
     articles.forEach(a => scrollContainer.appendChild(buildItem(a)));
 
     const totalHeight = scrollContainer.scrollHeight;
     const vh = window.innerHeight;
 
-    // Start below the viewport and scroll upward so articles enter from the bottom
     let y = vh;
     scrollContainer.style.transform = 'translateY(' + y + 'px)';
 
@@ -144,8 +164,9 @@ function onScrollDone() {
     scrollContainer.innerHTML = '';
     scrollContainer.style.transform = '';
 
-    fetch('/api/complete', { method: 'POST' }).catch(() => {});
-
+    // Show button if more arrived while we were scrolling
+    updateShowBtn();
+    updateTopBar();
     startCountdown();
     schedulePoll(POLL_MS);
 }
@@ -154,19 +175,18 @@ function onScrollDone() {
 
 async function poll() {
     try {
-        const res = await fetch('/api/status');
+        const res  = await fetch('/api/status');
         const data = await res.json();
 
-        nextPollAt      = data.nextPollAt   || 0;
-        lastTotalLoaded = data.totalLoaded  || 0;
-        lastUnseenCount = data.unseenCount  || 0;
+        nextPollAt      = data.nextPollAt    || 0;
+        lastTotalLoaded = data.totalLoaded   || 0;
         lastState       = data.state;
-        lastSourcesRead = data.sourcesRead  || 0;
+        lastSourcesRead = data.sourcesRead   || 0;
         lastTotalSources = data.totalSources || 0;
 
         if (initialPollCycle === null) {
             initialPollCycle = data.pollCycle;
-            // Discard any articles already queued before this page load
+            // Discard any articles that were queued before this page loaded
             if (data.state === 'ARTICLES_READY') {
                 fetch('/api/complete', { method: 'POST' }).catch(() => {});
             }
@@ -175,19 +195,23 @@ async function poll() {
             seenFirstCycle = true;
         }
 
-        updateTopBar();
-
         if (data.state === 'INITIALIZING') {
             stopCountdown();
+            updateTopBar();
             schedulePoll(POLL_MS);
 
         } else if (seenFirstCycle && data.state === 'ARTICLES_READY' &&
                    data.articles && data.articles.length > 0) {
-            stopCountdown();
-            startScrolling(data.articles);
-            // scrolling takes over; onScrollDone will reschedule polling
+            // Queue the articles client-side and immediately free the backend
+            data.articles.forEach(a => clientQueue.push(a));
+            fetch('/api/complete', { method: 'POST' }).catch(() => {});
+            updateTopBar();
+            updateShowBtn();
+            startCountdown();
+            schedulePoll(POLL_MS);
 
         } else {
+            updateTopBar();
             startCountdown();
             schedulePoll(POLL_MS);
         }

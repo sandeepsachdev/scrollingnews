@@ -63,11 +63,11 @@ public class NewsAggregatorService {
         this.fetcher = fetcher;
     }
 
-    @Scheduled(fixedRate = 60000, initialDelay = 0)
+    @Scheduled(fixedRate = 30000, initialDelay = 0)
     public void pollAll() {
         boolean isFirstRound = !initialized;
         log.info("Poll cycle starting (firstRound={})", isFirstRound);
-        nextPollAt = System.currentTimeMillis() + 60000;
+        nextPollAt = System.currentTimeMillis() + 30000;
 
         List<CompletableFuture<List<NewsArticle>>> futures = SOURCES.stream()
                 .map(source -> CompletableFuture.supplyAsync(() -> {

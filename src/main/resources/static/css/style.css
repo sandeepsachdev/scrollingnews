@@ -19,7 +19,8 @@ html, body {
     left: 50%;
     transform: translateX(-50%);
     color: #ccc;
-    font-size: 11px;
+    font-size: 13px;
+    font-weight: 600;
     font-family: 'Courier New', monospace;
     letter-spacing: 2.5px;
     text-transform: uppercase;
@@ -44,7 +45,8 @@ html, body {
     background: transparent;
     border: 1px solid #888;
     color: #ccc;
-    font-size: 10px;
+    font-size: 12px;
+    font-weight: 600;
     font-family: 'Courier New', monospace;
     letter-spacing: 2px;
     text-transform: uppercase;
@@ -87,7 +89,7 @@ html, body {
 }
 
 .news-source {
-    font-size: 10px;
+    font-size: 12px;
     font-family: 'Courier New', monospace;
     letter-spacing: 2.5px;
     text-transform: uppercase;
@@ -96,22 +98,23 @@ html, body {
 }
 
 .news-time {
-    font-size: 10px;
+    font-size: 12px;
     font-family: 'Courier New', monospace;
     letter-spacing: 1px;
     color: #888;
+    font-weight: 600;
 }
 
 .news-title {
-    font-size: 16px;
+    font-size: 19px;
     line-height: 1.45;
     color: #f0f0f0;
-    font-weight: normal;
+    font-weight: bold;
     letter-spacing: 0.2px;
 }
 
 .news-desc {
-    font-size: 11px;
+    font-size: 13px;
     line-height: 1.5;
     color: #999;
     margin-top: 4px;
@@ -138,7 +141,8 @@ html, body {
     border: none;
     border-bottom: 1px solid transparent;
     color: #888;
-    font-size: 10px;
+    font-size: 12px;
+    font-weight: 600;
     font-family: 'Courier New', monospace;
     letter-spacing: 2.5px;
     text-transform: uppercase;
@@ -171,7 +175,8 @@ html, body {
 #updates-status {
     text-align: center;
     color: #888;
-    font-size: 10px;
+    font-size: 12px;
+    font-weight: 600;
     font-family: 'Courier New', monospace;
     letter-spacing: 2px;
     text-transform: uppercase;
@@ -193,7 +198,8 @@ html, body {
 }
 
 .cycle-time {
-    font-size: 10px;
+    font-size: 13px;
+    font-weight: bold;
     font-family: 'Courier New', monospace;
     letter-spacing: 2px;
     text-transform: uppercase;
@@ -201,7 +207,8 @@ html, body {
 }
 
 .cycle-summary {
-    font-size: 10px;
+    font-size: 12px;
+    font-weight: 600;
     font-family: 'Courier New', monospace;
     letter-spacing: 1px;
     color: #888;
@@ -220,7 +227,8 @@ html, body {
 }
 
 .entry-source {
-    font-size: 10px;
+    font-size: 13px;
+    font-weight: bold;
     font-family: 'Courier New', monospace;
     letter-spacing: 2.5px;
     text-transform: uppercase;
@@ -228,7 +236,8 @@ html, body {
 }
 
 .entry-count {
-    font-size: 10px;
+    font-size: 13px;
+    font-weight: 600;
     font-family: 'Courier New', monospace;
     letter-spacing: 1px;
     color: #bbb;
@@ -238,7 +247,8 @@ html, body {
     text-align: center;
     padding: 80px 0;
     color: #888;
-    font-size: 11px;
+    font-size: 13px;
+    font-weight: 600;
     font-family: 'Courier New', monospace;
     letter-spacing: 2px;
     text-transform: uppercase;

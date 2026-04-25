@@ -18,7 +18,7 @@ html, body {
     top: 22px;
     left: 50%;
     transform: translateX(-50%);
-    color: #bbb;
+    color: #e0e0e0;
     font-size: 11px;
     font-family: 'Courier New', monospace;
     letter-spacing: 2.5px;
@@ -42,8 +42,8 @@ html, body {
     bottom: 26px;
     right: 28px;
     background: transparent;
-    border: 1px solid #555;
-    color: #bbb;
+    border: 1px solid #888;
+    color: #e0e0e0;
     font-size: 10px;
     font-family: 'Courier New', monospace;
     letter-spacing: 2px;
@@ -91,7 +91,7 @@ html, body {
     font-family: 'Courier New', monospace;
     letter-spacing: 2.5px;
     text-transform: uppercase;
-    color: #b8964a;
+    color: #f0c060;
     font-weight: bold;
 }
 
@@ -99,13 +99,13 @@ html, body {
     font-size: 10px;
     font-family: 'Courier New', monospace;
     letter-spacing: 1px;
-    color: #555;
+    color: #aaa;
 }
 
 .news-title {
     font-size: 16px;
     line-height: 1.45;
-    color: #ddd;
+    color: #f5f5f5;
     font-weight: normal;
     letter-spacing: 0.2px;
 }
@@ -113,7 +113,7 @@ html, body {
 .news-desc {
     font-size: 11px;
     line-height: 1.5;
-    color: #444;
+    color: #bbb;
     margin-top: 4px;
     font-family: 'Helvetica Neue', Arial, sans-serif;
     display: -webkit-box;

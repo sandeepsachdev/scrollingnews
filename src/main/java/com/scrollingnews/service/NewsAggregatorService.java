@@ -18,11 +18,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 @Service
 public class NewsAggregatorService {
 
     private static final Logger log = LoggerFactory.getLogger(NewsAggregatorService.class);
+    private static final int MAX_RECENT = 500;
 
     private static final List<NewsSource> SOURCES = List.of(
             new NewsSource("BBC News",        "https://feeds.bbci.co.uk/news/rss.xml"),
@@ -45,17 +48,18 @@ public class NewsAggregatorService {
             new NewsSource("ABC News",        "https://abcnews.go.com/abcnews/topstories")
     );
 
+    private record SequencedArticle(long seq, NewsArticle article) {}
+
     private final NewsFetcherService fetcher;
     private final ExecutorService fetchPool = Executors.newFixedThreadPool(10);
 
     private final Set<String> seenIds = ConcurrentHashMap.newKeySet();
-    private final List<NewsArticle> pendingArticles = new ArrayList<>();
-    private List<NewsArticle> activeDisplay = null;
+    private final List<SequencedArticle> recentArticles = new ArrayList<>();
+    private final AtomicLong latestSeq = new AtomicLong(0);
+    private final AtomicInteger sourcesRead = new AtomicInteger(0);
 
-    private final AtomicInteger firstRoundProgress = new AtomicInteger(0);
     private volatile boolean initialized = false;
     private volatile long nextPollAt = 0;
-    private final AtomicInteger pollCycle = new AtomicInteger(0);
 
     public NewsAggregatorService(NewsFetcherService fetcher) {
         this.fetcher = fetcher;
@@ -63,16 +67,13 @@ public class NewsAggregatorService {
 
     @Scheduled(fixedRate = 30000, initialDelay = 0)
     public void pollAll() {
-        boolean isFirstRound = !initialized;
-        log.info("Poll cycle starting (firstRound={})", isFirstRound);
+        log.info("Poll cycle starting");
         nextPollAt = System.currentTimeMillis() + 30000;
 
         List<CompletableFuture<List<NewsArticle>>> futures = SOURCES.stream()
                 .map(source -> CompletableFuture.supplyAsync(() -> {
                     List<NewsArticle> result = fetcher.fetch(source);
-                    if (isFirstRound) {
-                        firstRoundProgress.incrementAndGet();
-                    }
+                    sourcesRead.incrementAndGet();
                     return result;
                 }, fetchPool))
                 .toList();
@@ -93,46 +94,38 @@ public class NewsAggregatorService {
         log.info("Poll cycle complete — {} new articles found", newArticles.size());
 
         synchronized (this) {
-            if (!initialized) {
-                initialized = true;
-                firstRoundProgress.set(SOURCES.size());
+            for (NewsArticle article : newArticles) {
+                recentArticles.add(new SequencedArticle(latestSeq.incrementAndGet(), article));
             }
-            if (!newArticles.isEmpty()) {
-                pendingArticles.addAll(newArticles);
+            while (recentArticles.size() > MAX_RECENT) {
+                recentArticles.remove(0);
             }
+            initialized = true;
         }
-        pollCycle.incrementAndGet();
     }
 
-    public synchronized StatusResponse getStatus() {
-        int cycle = pollCycle.get();
+    public synchronized StatusResponse getStatus(Long since) {
         int totalLoaded = seenIds.size();
-        int unseenCount = pendingArticles.size();
 
         if (!initialized) {
-            return new StatusResponse("INITIALIZING", firstRoundProgress.get(), SOURCES.size(),
-                    Collections.emptyList(), nextPollAt, cycle, totalLoaded, unseenCount);
+            return new StatusResponse("INITIALIZING", sourcesRead.get(), SOURCES.size(),
+                    Collections.emptyList(), nextPollAt, latestSeq.get(), totalLoaded);
         }
 
-        // Promote pending to activeDisplay when nothing is currently being shown
-        if (activeDisplay == null && !pendingArticles.isEmpty()) {
-            activeDisplay = new ArrayList<>(pendingArticles);
-            pendingArticles.clear();
-            unseenCount = 0;
+        // New client: return baseline seq so they only receive future articles
+        if (since == null) {
+            return new StatusResponse("IDLE", SOURCES.size(), SOURCES.size(),
+                    Collections.emptyList(), nextPollAt, latestSeq.get(), totalLoaded);
         }
 
-        if (activeDisplay != null) {
-            return new StatusResponse("ARTICLES_READY", SOURCES.size(), SOURCES.size(),
-                    activeDisplay, nextPollAt, cycle, totalLoaded, unseenCount);
-        }
+        List<NewsArticle> articles = recentArticles.stream()
+                .filter(sa -> sa.seq() > since)
+                .map(SequencedArticle::article)
+                .collect(Collectors.toList());
 
-        return new StatusResponse("IDLE", SOURCES.size(), SOURCES.size(),
-                Collections.emptyList(), nextPollAt, cycle, totalLoaded, unseenCount);
-    }
-
-    public synchronized void markDisplayComplete() {
-        activeDisplay = null;
-        log.info("Display cycle complete");
+        String state = articles.isEmpty() ? "IDLE" : "ARTICLES_READY";
+        return new StatusResponse(state, SOURCES.size(), SOURCES.size(),
+                articles, nextPollAt, latestSeq.get(), totalLoaded);
     }
 
     public int getTotalSources() {

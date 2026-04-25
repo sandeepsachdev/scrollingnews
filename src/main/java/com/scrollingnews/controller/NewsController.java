@@ -4,7 +4,7 @@ import com.scrollingnews.model.StatusResponse;
 import com.scrollingnews.service.NewsAggregatorService;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 @Controller
@@ -23,13 +23,7 @@ public class NewsController {
 
     @GetMapping("/api/status")
     @ResponseBody
-    public StatusResponse getStatus() {
-        return aggregator.getStatus();
-    }
-
-    @PostMapping("/api/complete")
-    @ResponseBody
-    public void markComplete() {
-        aggregator.markDisplayComplete();
+    public StatusResponse getStatus(@RequestParam(required = false) Long since) {
+        return aggregator.getStatus(since);
     }
 }

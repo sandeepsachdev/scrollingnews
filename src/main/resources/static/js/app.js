@@ -14,8 +14,7 @@ let scrollTop      = 0;     // current translateY offset (positive = scrolled do
 let lastScrollTs   = null;
 
 let nextPollAt    = 0;
-let initialPollCycle = null;
-let seenFirstCycle   = false;
+let lastSeq       = null;   // null until server is initialized; then tracks our cursor
 
 let lastTotalLoaded  = 0;
 let lastState        = 'INITIALIZING';
@@ -162,7 +161,8 @@ function addArticles(articles) {
 
 async function poll() {
     try {
-        const res  = await fetch('/api/status');
+        const url = lastSeq === null ? '/api/status' : '/api/status?since=' + lastSeq;
+        const res  = await fetch(url);
         const data = await res.json();
 
         nextPollAt       = data.nextPollAt    || 0;
@@ -171,30 +171,22 @@ async function poll() {
         lastSourcesRead  = data.sourcesRead   || 0;
         lastTotalSources = data.totalSources  || 0;
 
-        if (initialPollCycle === null) {
-            initialPollCycle = data.pollCycle;
-            if (data.state === 'ARTICLES_READY') {
-                fetch('/api/complete', { method: 'POST' }).catch(() => {});
-            }
-        }
-        if (data.pollCycle > initialPollCycle) {
-            seenFirstCycle = true;
-        }
-
         updateTopBar();
 
-        if (data.state === 'INITIALIZING') {
-            schedulePoll(POLL_MS);
-
-        } else if (seenFirstCycle && data.state === 'ARTICLES_READY' &&
-                   data.articles && data.articles.length > 0) {
-            addArticles(data.articles);
-            fetch('/api/complete', { method: 'POST' }).catch(() => {});
-            schedulePoll(POLL_MS);
-
-        } else {
-            schedulePoll(POLL_MS);
+        if (data.state !== 'INITIALIZING') {
+            if (lastSeq === null) {
+                // First initialized response — commit baseline, skip current articles
+                lastSeq = data.latestSeq;
+            } else {
+                // Show any articles newer than our cursor, then advance cursor
+                if (data.articles && data.articles.length > 0) {
+                    addArticles(data.articles);
+                }
+                lastSeq = data.latestSeq;
+            }
         }
+
+        schedulePoll(POLL_MS);
     } catch (_) {
         schedulePoll(POLL_MS * 3);
     }

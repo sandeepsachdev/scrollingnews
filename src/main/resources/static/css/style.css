@@ -34,29 +34,7 @@ html, body {
     left: 0;
     right: 0;
     bottom: 0;
-    overflow: hidden;
-    -webkit-mask-image: linear-gradient(
-        to bottom,
-        transparent 0%,
-        black 6%,
-        black 92%,
-        transparent 100%
-    );
-    mask-image: linear-gradient(
-        to bottom,
-        transparent 0%,
-        black 6%,
-        black 92%,
-        transparent 100%
-    );
-}
-
-#news-inner {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    will-change: transform;
+    overflow-y: auto;
 }
 
 #clear-btn {

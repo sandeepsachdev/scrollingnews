@@ -91,7 +91,10 @@ public class NewsAggregatorService {
             }
         }
 
-        log.info("Poll cycle complete — {} new articles found", newArticles.size());
+        if (!newArticles.isEmpty()) {
+            log.error("Poll cycle complete — {} new articles found", newArticles.size());
+        }
+
 
         synchronized (this) {
             for (NewsArticle article : newArticles) {

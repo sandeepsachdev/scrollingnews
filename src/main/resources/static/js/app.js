@@ -1,4 +1,3 @@
-const SCROLL_SPEED = 50;    // px/s — gentle downward scroll through the list
 const POLL_MS = 2000;
 const MAX_ITEMS = 300;      // cap DOM size
 
@@ -9,9 +8,6 @@ const clearBtn  = document.getElementById('clear-btn');
 
 let pollTimerId    = null;
 let countdownTimer = null;
-let scrollFrame    = null;
-let scrollTop      = 0;     // current translateY offset (positive = scrolled down)
-let lastScrollTs   = null;
 
 let nextPollAt    = 0;
 let lastSeq       = null;   // null until server is initialized; then tracks our cursor
@@ -75,44 +71,6 @@ function startCountdown() {
     countdownTimer = setInterval(updateTopBar, 1000);
 }
 
-// ── auto-scroll ───────────────────────────────────────────────────────────────
-
-function startAutoScroll() {
-    if (scrollFrame) cancelAnimationFrame(scrollFrame);
-    lastScrollTs = null;
-    scrollFrame = requestAnimationFrame(autoScrollFrame);
-}
-
-function stopAutoScroll() {
-    if (scrollFrame) cancelAnimationFrame(scrollFrame);
-    scrollFrame = null;
-}
-
-function autoScrollFrame(ts) {
-    if (!lastScrollTs) lastScrollTs = ts;
-    const dt = (ts - lastScrollTs) / 1000;
-    lastScrollTs = ts;
-
-    const maxScroll = newsInner.scrollHeight - newsList.clientHeight;
-
-    if (maxScroll <= 0) {
-        // Content fits without scrolling
-        newsInner.style.transform = 'translateY(0)';
-        scrollTop = 0;
-        scrollFrame = null;
-        return;
-    }
-
-    if (scrollTop < maxScroll) {
-        scrollTop = Math.min(scrollTop + SCROLL_SPEED * dt, maxScroll);
-        newsInner.style.transform = 'translateY(' + (-scrollTop) + 'px)';
-        scrollFrame = requestAnimationFrame(autoScrollFrame);
-    } else {
-        // Reached the bottom — stop and wait for new articles
-        scrollFrame = null;
-    }
-}
-
 // ── article list ──────────────────────────────────────────────────────────────
 
 function buildItem(article) {
@@ -138,7 +96,9 @@ function addArticles(articles) {
     // Sort newest first within this batch
     const sorted = [...articles].sort((a, b) => b.publishedAt - a.publishedAt);
 
-    // Build fragment and prepend before existing items
+    const prevScrollHeight = newsList.scrollHeight;
+    const atTop = newsList.scrollTop === 0;
+
     const frag = document.createDocumentFragment();
     sorted.forEach(a => frag.appendChild(buildItem(a)));
     newsInner.insertBefore(frag, newsInner.firstChild);
@@ -148,13 +108,10 @@ function addArticles(articles) {
         newsInner.removeChild(newsInner.lastChild);
     }
 
-    // Reset to top so newest articles are immediately visible
-    stopAutoScroll();
-    scrollTop = 0;
-    newsInner.style.transform = 'translateY(0)';
-
-    // Start scrolling down through the list
-    startAutoScroll();
+    // If the user has scrolled down, maintain their position
+    if (!atTop) {
+        newsList.scrollTop += newsList.scrollHeight - prevScrollHeight;
+    }
 }
 
 // ── polling ───────────────────────────────────────────────────────────────────
@@ -200,10 +157,7 @@ function schedulePoll(delay) {
 // ── clear button ──────────────────────────────────────────────────────────────
 
 clearBtn.addEventListener('click', () => {
-    stopAutoScroll();
     newsInner.innerHTML = '';
-    scrollTop = 0;
-    newsInner.style.transform = '';
 });
 
 // ── boot ──────────────────────────────────────────────────────────────────────

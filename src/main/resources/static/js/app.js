@@ -70,7 +70,7 @@ function updateTopBar() {
         if (newArticlesCount > 0) parts.push('+' + fmt(newArticlesCount) + ' new');
         if (nextPollAt > 0) {
             const secs = Math.max(0, Math.ceil((nextPollAt - Date.now()) / 1000));
-            parts.push('next refresh in ' + secs + 's');
+            parts.push('refresh ' + secs + 's');
         }
     }
 

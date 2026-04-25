@@ -21,6 +21,7 @@ let lastTotalLoaded  = 0;
 let lastState        = 'INITIALIZING';
 let lastSourcesRead  = 0;
 let lastTotalSources = 0;
+let newArticlesCount = 0;   // articles received after initial page-load baseline
 
 let updatesRefreshTimer   = null;
 let updatesCountdown      = 30;
@@ -66,6 +67,7 @@ function updateTopBar() {
         if (lastTotalLoaded > 0) parts.push(fmt(lastTotalLoaded) + ' loaded');
     } else {
         parts.push(fmt(lastTotalLoaded) + ' loaded');
+        if (newArticlesCount > 0) parts.push('+' + fmt(newArticlesCount) + ' new');
         if (nextPollAt > 0) {
             const secs = Math.max(0, Math.ceil((nextPollAt - Date.now()) / 1000));
             parts.push('next refresh in ' + secs + 's');
@@ -146,6 +148,7 @@ async function poll() {
             } else {
                 // Show any articles newer than our cursor, then advance cursor
                 if (data.articles && data.articles.length > 0) {
+                    newArticlesCount += data.articles.length;
                     addArticles(data.articles);
                 }
                 lastSeq = data.latestSeq;

@@ -70,10 +70,10 @@ public class NewsAggregatorService {
         this.fetcher = fetcher;
     }
 
-    @Scheduled(fixedRate = 30000, initialDelay = 0)
+    @Scheduled(fixedRate = 300000, initialDelay = 0)
     public void pollAll() {
         log.info("Poll cycle starting");
-        nextPollAt = System.currentTimeMillis() + 30000;
+        nextPollAt = System.currentTimeMillis() + 300000;
 
         List<CompletableFuture<SourceFetchResult>> futures = SOURCES.stream()
                 .map(source -> CompletableFuture.supplyAsync(() -> {

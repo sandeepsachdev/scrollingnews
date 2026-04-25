@@ -15,7 +15,7 @@ html, body {
 
 #status-text {
     position: fixed;
-    top: 22px;
+    top: 52px;
     left: 50%;
     transform: translateX(-50%);
     color: #ccc;
@@ -31,7 +31,7 @@ html, body {
 /* Scrollable news area below the top bar */
 #news-list {
     position: fixed;
-    top: 60px;
+    top: 90px;
     left: 0;
     right: 0;
     bottom: 0;
@@ -165,7 +165,7 @@ html, body {
 #updates-page {
     display: none;
     position: fixed;
-    top: 60px;
+    top: 90px;
     left: 0;
     right: 0;
     bottom: 0;

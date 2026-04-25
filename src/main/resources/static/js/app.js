@@ -1,31 +1,24 @@
-const SCROLL_SPEED = 80;    // pixels per second — slow enough to read headlines
-const POLL_MS = 2000;       // how often to check the backend when not scrolling
+const SCROLL_SPEED = 50;    // px/s — gentle downward scroll through the list
+const POLL_MS = 2000;
+const MAX_ITEMS = 300;      // cap DOM size
 
 const statusEl  = document.getElementById('status-text');
-const pauseBtn  = document.getElementById('pause-btn');
-const showBtn   = document.getElementById('show-btn');
-const replayBtn = document.getElementById('replay-btn');
-const scrollContainer = document.getElementById('scroll-container');
+const newsList  = document.getElementById('news-list');
+const newsInner = document.getElementById('news-inner');
 
-let animFrameId = null;
-let pollTimerId = null;
-let countdownTimerId = null;
-let scrolling = false;
-let paused = false;
-let nextPollAt = 0;
+let pollTimerId    = null;
+let countdownTimer = null;
+let scrollFrame    = null;
+let scrollTop      = 0;     // current translateY offset (positive = scrolled down)
+let lastScrollTs   = null;
+
+let nextPollAt    = 0;
 let initialPollCycle = null;
-let seenFirstCycle = false;
+let seenFirstCycle   = false;
 
-// Articles received from the server but not yet shown to the user
-const clientQueue = [];
-
-// The last batch that was scrolled — kept so the user can replay it
-let lastDisplayedArticles = [];
-
-// Last-known counts for the top bar
-let lastTotalLoaded = 0;
-let lastState = 'INITIALIZING';
-let lastSourcesRead = 0;
+let lastTotalLoaded  = 0;
+let lastState        = 'INITIALIZING';
+let lastSourcesRead  = 0;
 let lastTotalSources = 0;
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -68,9 +61,6 @@ function updateTopBar() {
         if (lastTotalLoaded > 0) parts.push(fmt(lastTotalLoaded) + ' loaded');
     } else {
         parts.push(fmt(lastTotalLoaded) + ' loaded');
-        if (seenFirstCycle && clientQueue.length > 0) {
-            parts.push(fmt(clientQueue.length) + ' unseen');
-        }
         if (nextPollAt > 0) {
             const secs = Math.max(0, Math.ceil((nextPollAt - Date.now()) / 1000));
             parts.push('next refresh in ' + secs + 's');
@@ -81,82 +71,49 @@ function updateTopBar() {
 }
 
 function startCountdown() {
-    clearInterval(countdownTimerId);
-    countdownTimerId = setInterval(updateTopBar, 1000);
+    clearInterval(countdownTimer);
+    countdownTimer = setInterval(updateTopBar, 1000);
 }
 
-function stopCountdown() {
-    clearInterval(countdownTimerId);
-    countdownTimerId = null;
+// ── auto-scroll ───────────────────────────────────────────────────────────────
+
+function startAutoScroll() {
+    if (scrollFrame) cancelAnimationFrame(scrollFrame);
+    lastScrollTs = null;
+    scrollFrame = requestAnimationFrame(autoScrollFrame);
 }
 
-// ── pause toggle ──────────────────────────────────────────────────────────────
+function stopAutoScroll() {
+    if (scrollFrame) cancelAnimationFrame(scrollFrame);
+    scrollFrame = null;
+}
 
-function updatePauseBtn() {
-    if (paused) {
-        pauseBtn.textContent = 'Resume';
-        pauseBtn.classList.add('paused');
+function autoScrollFrame(ts) {
+    if (!lastScrollTs) lastScrollTs = ts;
+    const dt = (ts - lastScrollTs) / 1000;
+    lastScrollTs = ts;
+
+    const maxScroll = newsInner.scrollHeight - newsList.clientHeight;
+
+    if (maxScroll <= 0) {
+        // Content fits without scrolling
+        newsInner.style.transform = 'translateY(0)';
+        scrollTop = 0;
+        scrollFrame = null;
+        return;
+    }
+
+    if (scrollTop < maxScroll) {
+        scrollTop = Math.min(scrollTop + SCROLL_SPEED * dt, maxScroll);
+        newsInner.style.transform = 'translateY(' + (-scrollTop) + 'px)';
+        scrollFrame = requestAnimationFrame(autoScrollFrame);
     } else {
-        pauseBtn.textContent = 'Pause';
-        pauseBtn.classList.remove('paused');
+        // Reached the bottom — stop and wait for new articles
+        scrollFrame = null;
     }
 }
 
-pauseBtn.addEventListener('click', function () {
-    paused = !paused;
-    updatePauseBtn();
-
-    if (!paused && !scrolling && clientQueue.length > 0) {
-        // Resuming with queued articles — start scrolling immediately
-        showBtn.style.display = 'none';
-        stopCountdown();
-        startScrolling(clientQueue.splice(0));
-    } else if (paused) {
-        // Just paused — show the queued count if anything is waiting
-        updateShowBtn();
-    }
-});
-
-// ── show button (paused mode only) ────────────────────────────────────────────
-
-function updateShowBtn() {
-    if (paused && clientQueue.length > 0 && !scrolling) {
-        showBtn.textContent = 'Show ' + fmt(clientQueue.length) + ' articles';
-        showBtn.style.display = 'block';
-    } else {
-        showBtn.style.display = 'none';
-    }
-}
-
-showBtn.addEventListener('click', function () {
-    if (clientQueue.length === 0 || scrolling) return;
-    const articles = clientQueue.splice(0);
-    showBtn.style.display = 'none';
-    replayBtn.style.display = 'none';
-    stopCountdown();
-    startScrolling(articles);
-});
-
-// ── replay button ─────────────────────────────────────────────────────────────
-
-function updateReplayBtn() {
-    if (lastDisplayedArticles.length > 0 && !scrolling) {
-        replayBtn.textContent = '↺  Replay last ' + fmt(lastDisplayedArticles.length) + ' articles';
-        replayBtn.style.display = 'block';
-    } else {
-        replayBtn.style.display = 'none';
-    }
-}
-
-replayBtn.addEventListener('click', function () {
-    if (lastDisplayedArticles.length === 0 || scrolling) return;
-    showBtn.style.display = 'none';
-    replayBtn.style.display = 'none';
-    stopCountdown();
-    startScrolling(lastDisplayedArticles.slice());
-});
-
-// ── article items ─────────────────────────────────────────────────────────────
+// ── article list ──────────────────────────────────────────────────────────────
 
 function buildItem(article) {
     const el = document.createElement('a');
@@ -177,59 +134,27 @@ function buildItem(article) {
     return el;
 }
 
-// ── scroll animation ──────────────────────────────────────────────────────────
+function addArticles(articles) {
+    // Sort newest first within this batch
+    const sorted = [...articles].sort((a, b) => b.publishedAt - a.publishedAt);
 
-function startScrolling(articles) {
-    lastDisplayedArticles = articles;
-    scrolling = true;
-    scrollContainer.innerHTML = '';
-    replayBtn.style.display = 'none';
-    showBtn.style.display = 'none';
-    updateTopBar();
+    // Build fragment and prepend before existing items
+    const frag = document.createDocumentFragment();
+    sorted.forEach(a => frag.appendChild(buildItem(a)));
+    newsInner.insertBefore(frag, newsInner.firstChild);
 
-    articles.forEach(a => scrollContainer.appendChild(buildItem(a)));
-
-    const totalHeight = scrollContainer.scrollHeight;
-    const vh = window.innerHeight;
-
-    let y = vh;
-    scrollContainer.style.transform = 'translateY(' + y + 'px)';
-
-    let lastTs = null;
-
-    function frame(ts) {
-        if (!lastTs) lastTs = ts;
-        const dt = (ts - lastTs) / 1000;
-        lastTs = ts;
-
-        y -= SCROLL_SPEED * dt;
-        scrollContainer.style.transform = 'translateY(' + y + 'px)';
-
-        if (y > -totalHeight) {
-            animFrameId = requestAnimationFrame(frame);
-        } else {
-            onScrollDone();
-        }
+    // Trim oldest items from the bottom to keep DOM lean
+    while (newsInner.children.length > MAX_ITEMS) {
+        newsInner.removeChild(newsInner.lastChild);
     }
 
-    animFrameId = requestAnimationFrame(frame);
-}
+    // Reset to top so newest articles are immediately visible
+    stopAutoScroll();
+    scrollTop = 0;
+    newsInner.style.transform = 'translateY(0)';
 
-function onScrollDone() {
-    scrolling = false;
-    scrollContainer.innerHTML = '';
-    scrollContainer.style.transform = '';
-
-    if (!paused && clientQueue.length > 0) {
-        // Auto-play mode: immediately scroll the next queued batch
-        startScrolling(clientQueue.splice(0));
-    } else {
-        updateShowBtn();
-        updateReplayBtn();
-        updateTopBar();
-        startCountdown();
-        schedulePoll(POLL_MS);
-    }
+    // Start scrolling down through the list
+    startAutoScroll();
 }
 
 // ── polling ───────────────────────────────────────────────────────────────────
@@ -239,15 +164,14 @@ async function poll() {
         const res  = await fetch('/api/status');
         const data = await res.json();
 
-        nextPollAt      = data.nextPollAt    || 0;
-        lastTotalLoaded = data.totalLoaded   || 0;
-        lastState       = data.state;
-        lastSourcesRead = data.sourcesRead   || 0;
-        lastTotalSources = data.totalSources || 0;
+        nextPollAt       = data.nextPollAt    || 0;
+        lastTotalLoaded  = data.totalLoaded   || 0;
+        lastState        = data.state;
+        lastSourcesRead  = data.sourcesRead   || 0;
+        lastTotalSources = data.totalSources  || 0;
 
         if (initialPollCycle === null) {
             initialPollCycle = data.pollCycle;
-            // Discard any articles that were queued before this page loaded
             if (data.state === 'ARTICLES_READY') {
                 fetch('/api/complete', { method: 'POST' }).catch(() => {});
             }
@@ -256,31 +180,18 @@ async function poll() {
             seenFirstCycle = true;
         }
 
+        updateTopBar();
+
         if (data.state === 'INITIALIZING') {
-            stopCountdown();
-            updateTopBar();
             schedulePoll(POLL_MS);
 
         } else if (seenFirstCycle && data.state === 'ARTICLES_READY' &&
                    data.articles && data.articles.length > 0) {
-            data.articles.forEach(a => clientQueue.push(a));
+            addArticles(data.articles);
             fetch('/api/complete', { method: 'POST' }).catch(() => {});
-
-            if (!paused && !scrolling) {
-                // Auto-play: start scrolling right away
-                stopCountdown();
-                startScrolling(clientQueue.splice(0));
-            } else {
-                // Paused (or mid-scroll): queue and let the user / current scroll decide
-                updateTopBar();
-                updateShowBtn();
-                startCountdown();
-                schedulePoll(POLL_MS);
-            }
+            schedulePoll(POLL_MS);
 
         } else {
-            updateTopBar();
-            startCountdown();
             schedulePoll(POLL_MS);
         }
     } catch (_) {
@@ -294,4 +205,5 @@ function schedulePoll(delay) {
 }
 
 // ── boot ──────────────────────────────────────────────────────────────────────
+startCountdown();
 schedulePoll(500);

@@ -1,10 +1,15 @@
 const POLL_MS = 2000;
 const MAX_ITEMS = 300;      // cap DOM size
 
-const statusEl  = document.getElementById('status-text');
-const newsList  = document.getElementById('news-list');
-const newsInner = document.getElementById('news-inner');
-const clearBtn  = document.getElementById('clear-btn');
+const statusEl      = document.getElementById('status-text');
+const newsList      = document.getElementById('news-list');
+const newsInner     = document.getElementById('news-inner');
+const clearBtn      = document.getElementById('clear-btn');
+const updatesPage   = document.getElementById('updates-page');
+const updatesInner  = document.getElementById('updates-inner');
+const updatesStatus = document.getElementById('updates-status');
+const navFeedBtn    = document.getElementById('nav-feed');
+const navUpdatesBtn = document.getElementById('nav-updates');
 
 let pollTimerId    = null;
 let countdownTimer = null;
@@ -16,6 +21,10 @@ let lastTotalLoaded  = 0;
 let lastState        = 'INITIALIZING';
 let lastSourcesRead  = 0;
 let lastTotalSources = 0;
+
+let updatesRefreshTimer   = null;
+let updatesCountdown      = 30;
+let currentPage           = 'feed';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -159,6 +168,105 @@ function schedulePoll(delay) {
 clearBtn.addEventListener('click', () => {
     newsInner.innerHTML = '';
 });
+
+// ── navigation ────────────────────────────────────────────────────────────────
+
+navFeedBtn.addEventListener('click', () => showPage('feed'));
+navUpdatesBtn.addEventListener('click', () => showPage('updates'));
+
+function showPage(page) {
+    currentPage = page;
+    if (page === 'feed') {
+        newsList.style.display = '';
+        clearBtn.style.display = '';
+        updatesPage.style.display = 'none';
+        navFeedBtn.classList.add('active');
+        navUpdatesBtn.classList.remove('active');
+        stopUpdatesRefresh();
+    } else {
+        newsList.style.display = 'none';
+        clearBtn.style.display = 'none';
+        updatesPage.style.display = 'block';
+        navFeedBtn.classList.remove('active');
+        navUpdatesBtn.classList.add('active');
+        fetchUpdates();
+        startUpdatesRefresh();
+    }
+}
+
+// ── updates page ──────────────────────────────────────────────────────────────
+
+async function fetchUpdates() {
+    try {
+        const res    = await fetch('/api/feed-updates');
+        const events = await res.json();
+        renderUpdates(events);
+        updatesCountdown = 30;
+        renderUpdatesStatus();
+    } catch (_) {
+        // silent fail
+    }
+}
+
+function renderUpdates(events) {
+    if (!events || events.length === 0) {
+        updatesInner.innerHTML = '<div class="updates-empty">No updates detected yet</div>';
+        return;
+    }
+
+    // Group by detectedAt (one timestamp per poll cycle)
+    const cycleMap = new Map();
+    events.forEach(e => {
+        if (!cycleMap.has(e.detectedAt)) cycleMap.set(e.detectedAt, []);
+        cycleMap.get(e.detectedAt).push(e);
+    });
+
+    // Newest cycle first
+    const sorted = [...cycleMap.entries()].sort((a, b) => b[0] - a[0]);
+
+    const html = sorted.map(([ts, entries]) => {
+        const totalNew = entries.reduce((sum, e) => sum + e.newArticles, 0);
+        const rows = entries
+            .sort((a, b) => b.newArticles - a.newArticles)
+            .map(e =>
+                '<div class="cycle-entry">' +
+                    '<span class="entry-source">' + escHtml(e.source) + '</span>' +
+                    '<span class="entry-count">' + e.newArticles + ' new article' + (e.newArticles !== 1 ? 's' : '') + '</span>' +
+                '</div>'
+            ).join('');
+        return '<div class="update-cycle">' +
+            '<div class="cycle-header">' +
+                '<span class="cycle-time">' + formatDateTime(ts) + '</span>' +
+                '<span class="cycle-summary">' + entries.length + ' source' + (entries.length !== 1 ? 's' : '') + '  &middot;  ' + totalNew + ' new article' + (totalNew !== 1 ? 's' : '') + '</span>' +
+            '</div>' +
+            rows +
+        '</div>';
+    }).join('');
+
+    updatesInner.innerHTML = html;
+}
+
+function renderUpdatesStatus() {
+    updatesStatus.textContent = 'refreshing in ' + updatesCountdown + 's';
+}
+
+function startUpdatesRefresh() {
+    updatesCountdown = 30;
+    renderUpdatesStatus();
+    clearInterval(updatesRefreshTimer);
+    updatesRefreshTimer = setInterval(() => {
+        updatesCountdown = Math.max(0, updatesCountdown - 1);
+        renderUpdatesStatus();
+        if (updatesCountdown === 0) {
+            fetchUpdates();
+        }
+    }, 1000);
+}
+
+function stopUpdatesRefresh() {
+    clearInterval(updatesRefreshTimer);
+    updatesRefreshTimer = null;
+}
 
 // ── boot ──────────────────────────────────────────────────────────────────────
 startCountdown();

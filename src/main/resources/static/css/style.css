@@ -18,7 +18,7 @@ html, body {
     top: 22px;
     left: 50%;
     transform: translateX(-50%);
-    color: #bbb;
+    color: #ccc;
     font-size: 11px;
     font-family: 'Courier New', monospace;
     letter-spacing: 2.5px;
@@ -42,8 +42,8 @@ html, body {
     bottom: 26px;
     right: 28px;
     background: transparent;
-    border: 1px solid #555;
-    color: #bbb;
+    border: 1px solid #888;
+    color: #ccc;
     font-size: 10px;
     font-family: 'Courier New', monospace;
     letter-spacing: 2px;
@@ -55,7 +55,7 @@ html, body {
 }
 
 #clear-btn:hover {
-    border-color: #aaa;
+    border-color: #fff;
     color: #fff;
 }
 
@@ -65,14 +65,14 @@ html, body {
     max-width: 820px;
     margin: 0 auto;
     padding: 14px 32px;
-    border-bottom: 1px solid #0d0d0d;
+    border-bottom: 1px solid #1a1a1a;
     text-decoration: none;
     cursor: pointer;
     transition: background 0.2s ease;
 }
 
 .news-item:hover {
-    background: #0a0a0a;
+    background: #111;
 }
 
 .news-item:hover .news-title {
@@ -91,7 +91,7 @@ html, body {
     font-family: 'Courier New', monospace;
     letter-spacing: 2.5px;
     text-transform: uppercase;
-    color: #b8964a;
+    color: #e6b460;
     font-weight: bold;
 }
 
@@ -99,13 +99,13 @@ html, body {
     font-size: 10px;
     font-family: 'Courier New', monospace;
     letter-spacing: 1px;
-    color: #555;
+    color: #888;
 }
 
 .news-title {
     font-size: 16px;
     line-height: 1.45;
-    color: #ddd;
+    color: #f0f0f0;
     font-weight: normal;
     letter-spacing: 0.2px;
 }
@@ -113,11 +113,133 @@ html, body {
 .news-desc {
     font-size: 11px;
     line-height: 1.5;
-    color: #444;
+    color: #999;
     margin-top: 4px;
     font-family: 'Helvetica Neue', Arial, sans-serif;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+}
+
+/* ── nav tabs ─────────────────────────────────────────────────────────────── */
+
+#nav-tabs {
+    position: fixed;
+    top: 16px;
+    left: 28px;
+    display: flex;
+    gap: 18px;
+    z-index: 10;
+}
+
+.nav-btn {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid transparent;
+    color: #888;
+    font-size: 10px;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    padding: 4px 0;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+}
+
+.nav-btn:hover {
+    color: #eee;
+}
+
+.nav-btn.active {
+    color: #e6b460;
+    border-bottom-color: #e6b460;
+}
+
+/* ── updates page ─────────────────────────────────────────────────────────── */
+
+#updates-page {
+    display: none;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow-y: auto;
+}
+
+#updates-status {
+    text-align: center;
+    color: #888;
+    font-size: 10px;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 14px 0 10px;
+}
+
+.update-cycle {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 18px 32px;
+    border-bottom: 1px solid #1a1a1a;
+}
+
+.cycle-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.cycle-time {
+    font-size: 10px;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #ccc;
+}
+
+.cycle-summary {
+    font-size: 10px;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 1px;
+    color: #888;
+}
+
+.cycle-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    border-bottom: 1px solid #111;
+}
+
+.cycle-entry:last-child {
+    border-bottom: none;
+}
+
+.entry-source {
+    font-size: 10px;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: #e6b460;
+}
+
+.entry-count {
+    font-size: 10px;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 1px;
+    color: #bbb;
+}
+
+.updates-empty {
+    text-align: center;
+    padding: 80px 0;
+    color: #888;
+    font-size: 11px;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 2px;
+    text-transform: uppercase;
 }

@@ -1,5 +1,6 @@
 package com.scrollingnews.service;
 
+import com.scrollingnews.model.FeedUpdateEvent;
 import com.scrollingnews.model.NewsArticle;
 import com.scrollingnews.model.NewsSource;
 import com.scrollingnews.model.StatusResponse;
@@ -26,6 +27,7 @@ public class NewsAggregatorService {
 
     private static final Logger log = LoggerFactory.getLogger(NewsAggregatorService.class);
     private static final int MAX_RECENT = 500;
+    private static final int MAX_EVENTS = 500;
 
     private static final List<NewsSource> SOURCES = List.of(
             new NewsSource("BBC News",        "https://feeds.bbci.co.uk/news/rss.xml"),
@@ -49,12 +51,14 @@ public class NewsAggregatorService {
     );
 
     private record SequencedArticle(long seq, NewsArticle article) {}
+    private record SourceFetchResult(NewsSource source, List<NewsArticle> articles) {}
 
     private final NewsFetcherService fetcher;
     private final ExecutorService fetchPool = Executors.newFixedThreadPool(10);
 
     private final Set<String> seenIds = ConcurrentHashMap.newKeySet();
     private final List<SequencedArticle> recentArticles = new ArrayList<>();
+    private final List<FeedUpdateEvent> feedUpdateEvents = new ArrayList<>();
     private final AtomicLong latestSeq = new AtomicLong(0);
     private final AtomicInteger sourcesRead = new AtomicInteger(0);
 
@@ -70,22 +74,31 @@ public class NewsAggregatorService {
         log.info("Poll cycle starting");
         nextPollAt = System.currentTimeMillis() + 30000;
 
-        List<CompletableFuture<List<NewsArticle>>> futures = SOURCES.stream()
+        List<CompletableFuture<SourceFetchResult>> futures = SOURCES.stream()
                 .map(source -> CompletableFuture.supplyAsync(() -> {
                     List<NewsArticle> result = fetcher.fetch(source);
                     sourcesRead.incrementAndGet();
-                    return result;
+                    return new SourceFetchResult(source, result);
                 }, fetchPool))
                 .toList();
 
+        long detectedAt = System.currentTimeMillis();
         List<NewsArticle> newArticles = new ArrayList<>();
-        for (CompletableFuture<List<NewsArticle>> f : futures) {
+        List<FeedUpdateEvent> newEvents = new ArrayList<>();
+
+        for (CompletableFuture<SourceFetchResult> f : futures) {
             try {
-                f.get(30, TimeUnit.SECONDS).forEach(article -> {
+                SourceFetchResult result = f.get(30, TimeUnit.SECONDS);
+                int count = 0;
+                for (NewsArticle article : result.articles()) {
                     if (article.id() != null && seenIds.add(article.id())) {
                         newArticles.add(article);
+                        count++;
                     }
-                });
+                }
+                if (count > 0) {
+                    newEvents.add(new FeedUpdateEvent(result.source().name(), detectedAt, count));
+                }
             } catch (Exception e) {
                 log.debug("Future timed out or failed: {}", e.getMessage());
             }
@@ -95,8 +108,11 @@ public class NewsAggregatorService {
             log.info("Poll cycle complete — {} new articles found", newArticles.size());
         }
 
-
         synchronized (this) {
+            feedUpdateEvents.addAll(newEvents);
+            while (feedUpdateEvents.size() > MAX_EVENTS) {
+                feedUpdateEvents.remove(0);
+            }
             for (NewsArticle article : newArticles) {
                 recentArticles.add(new SequencedArticle(latestSeq.incrementAndGet(), article));
             }
@@ -129,6 +145,10 @@ public class NewsAggregatorService {
         String state = articles.isEmpty() ? "IDLE" : "ARTICLES_READY";
         return new StatusResponse(state, SOURCES.size(), SOURCES.size(),
                 articles, nextPollAt, latestSeq.get(), totalLoaded);
+    }
+
+    public synchronized List<FeedUpdateEvent> getFeedUpdates() {
+        return new ArrayList<>(feedUpdateEvents);
     }
 
     public int getTotalSources() {

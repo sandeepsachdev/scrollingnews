@@ -92,7 +92,7 @@ public class NewsAggregatorService {
         }
 
         if (!newArticles.isEmpty()) {
-            log.error("Poll cycle complete — {} new articles found", newArticles.size());
+            log.info("Poll cycle complete — {} new articles found", newArticles.size());
         }
 
 

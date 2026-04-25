@@ -1,5 +1,5 @@
 const POLL_MS = 2000;
-const MAX_ITEMS = 300;      // cap DOM size
+const MAX_ITEMS = 10;
 
 const statusEl      = document.getElementById('status-text');
 const newsList      = document.getElementById('news-list');
@@ -14,8 +14,9 @@ const navUpdatesBtn = document.getElementById('nav-updates');
 let pollTimerId    = null;
 let countdownTimer = null;
 
-let nextPollAt    = 0;
-let lastSeq       = null;   // null until server is initialized; then tracks our cursor
+let nextPollAt = 0;
+let seenSeq    = parseInt(localStorage.getItem('scrollnews.seenSeq') || '0', 10);
+let lastSeq    = null;   // null until first initialized response; then tracks polling cursor
 
 let lastTotalLoaded  = 0;
 let lastState        = 'INITIALIZING';
@@ -129,8 +130,8 @@ function addArticles(articles) {
 
 async function poll() {
     try {
-        const url = lastSeq === null ? '/api/status' : '/api/status?since=' + lastSeq;
-        const res  = await fetch(url);
+        const since = lastSeq !== null ? lastSeq : seenSeq;
+        const res  = await fetch('/api/status?since=' + since);
         const data = await res.json();
 
         nextPollAt       = data.nextPollAt    || 0;
@@ -142,17 +143,11 @@ async function poll() {
         updateTopBar();
 
         if (data.state !== 'INITIALIZING') {
-            if (lastSeq === null) {
-                // First initialized response — commit baseline, skip current articles
-                lastSeq = data.latestSeq;
-            } else {
-                // Show any articles newer than our cursor, then advance cursor
-                if (data.articles && data.articles.length > 0) {
-                    newArticlesCount += data.articles.length;
-                    addArticles(data.articles);
-                }
-                lastSeq = data.latestSeq;
+            if (data.articles && data.articles.length > 0) {
+                newArticlesCount += data.articles.length;
+                addArticles(data.articles);
             }
+            lastSeq = data.latestSeq;
         }
 
         schedulePoll(POLL_MS);
@@ -169,7 +164,11 @@ function schedulePoll(delay) {
 // ── clear button ──────────────────────────────────────────────────────────────
 
 clearBtn.addEventListener('click', () => {
+    seenSeq = lastSeq !== null ? lastSeq : seenSeq;
+    localStorage.setItem('scrollnews.seenSeq', String(seenSeq));
     newsInner.innerHTML = '';
+    newArticlesCount = 0;
+    updateTopBar();
 });
 
 // ── navigation ────────────────────────────────────────────────────────────────

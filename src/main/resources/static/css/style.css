@@ -59,12 +59,34 @@ html, body {
     will-change: transform;
 }
 
+#clear-btn {
+    position: fixed;
+    bottom: 26px;
+    right: 28px;
+    background: transparent;
+    border: 1px solid #555;
+    color: #bbb;
+    font-size: 10px;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    cursor: pointer;
+    z-index: 10;
+    transition: border-color 0.2s, color 0.2s;
+}
+
+#clear-btn:hover {
+    border-color: #aaa;
+    color: #fff;
+}
+
 .news-item {
     display: block;
     width: 100%;
     max-width: 820px;
     margin: 0 auto;
-    padding: 28px 48px;
+    padding: 14px 32px;
     border-bottom: 1px solid #0d0d0d;
     text-decoration: none;
     cursor: pointer;
@@ -83,7 +105,7 @@ html, body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 6px;
 }
 
 .news-source {
@@ -103,18 +125,18 @@ html, body {
 }
 
 .news-title {
-    font-size: 23px;
-    line-height: 1.5;
+    font-size: 16px;
+    line-height: 1.45;
     color: #ddd;
     font-weight: normal;
     letter-spacing: 0.2px;
 }
 
 .news-desc {
-    font-size: 13px;
-    line-height: 1.6;
+    font-size: 11px;
+    line-height: 1.5;
     color: #444;
-    margin-top: 10px;
+    margin-top: 4px;
     font-family: 'Helvetica Neue', Arial, sans-serif;
     display: -webkit-box;
     -webkit-line-clamp: 2;

@@ -5,6 +5,7 @@ const MAX_ITEMS = 300;      // cap DOM size
 const statusEl  = document.getElementById('status-text');
 const newsList  = document.getElementById('news-list');
 const newsInner = document.getElementById('news-inner');
+const clearBtn  = document.getElementById('clear-btn');
 
 let pollTimerId    = null;
 let countdownTimer = null;
@@ -203,6 +204,15 @@ function schedulePoll(delay) {
     clearTimeout(pollTimerId);
     pollTimerId = setTimeout(poll, delay);
 }
+
+// ── clear button ──────────────────────────────────────────────────────────────
+
+clearBtn.addEventListener('click', () => {
+    stopAutoScroll();
+    newsInner.innerHTML = '';
+    scrollTop = 0;
+    newsInner.style.transform = '';
+});
 
 // ── boot ──────────────────────────────────────────────────────────────────────
 startCountdown();

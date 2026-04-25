@@ -27,7 +27,6 @@ public class NewsAggregatorService {
     private static final List<NewsSource> SOURCES = List.of(
             new NewsSource("BBC News",        "https://feeds.bbci.co.uk/news/rss.xml"),
             new NewsSource("BBC World",       "https://feeds.bbci.co.uk/news/world/rss.xml"),
-            new NewsSource("Reuters",         "https://feeds.reuters.com/reuters/topNews"),
             new NewsSource("CNN",             "http://rss.cnn.com/rss/edition.rss"),
             new NewsSource("NPR",             "https://feeds.npr.org/1001/rss.xml"),
             new NewsSource("The Guardian",    "https://www.theguardian.com/world/rss"),
@@ -40,7 +39,6 @@ public class NewsAggregatorService {
             new NewsSource("NY Times",        "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml"),
             new NewsSource("Washington Post", "https://feeds.washingtonpost.com/rss/national"),
             new NewsSource("CNBC",            "https://www.cnbc.com/id/100003114/device/rss/rss.html"),
-            new NewsSource("Forbes",          "https://www.forbes.com/real-time/feed2/"),
             new NewsSource("Sky News",        "https://feeds.skynews.com/feeds/rss/home.xml"),
             new NewsSource("Fox News",        "https://moxie.foxnews.com/google-publisher/latest.xml"),
             new NewsSource("Engadget",        "https://www.engadget.com/rss.xml"),

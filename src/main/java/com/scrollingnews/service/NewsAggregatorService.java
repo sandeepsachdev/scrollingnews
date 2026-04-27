@@ -46,7 +46,7 @@ public class NewsAggregatorService {
             new NewsSource("CNBC",            "https://www.cnbc.com/id/100003114/device/rss/rss.html"),
             new NewsSource("Sky News",        "https://feeds.skynews.com/feeds/rss/home.xml"),
             new NewsSource("Engadget",        "https://www.engadget.com/rss.xml"),
-            new NewsSource("ABC News",        "https://abcnews.go.com/abcnews/topstories"),
+            new NewsSource("ABC News",        "https://abcnews.go.com/abcnews/topstories")
     );
 
     private record SequencedArticle(long seq, NewsArticle article) {}

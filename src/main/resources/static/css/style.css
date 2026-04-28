@@ -106,7 +106,7 @@ html, body {
 }
 
 .news-title {
-    font-size: 19px;
+    font-size: 14px;
     line-height: 1.45;
     color: #f0f0f0;
     font-weight: bold;
@@ -114,13 +114,13 @@ html, body {
 }
 
 .news-desc {
-    font-size: 13px;
+    font-size: 12px;
     line-height: 1.5;
     color: #999;
     margin-top: 4px;
     font-family: 'Helvetica Neue', Arial, sans-serif;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 5;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
